@@ -34,6 +34,9 @@ IndexEntry* index_find(Index *index, const char *path) {
     }
     return NULL;
 }
+static int cmp_index_entry(const void *a, const void *b){
+	return strcmp(((const IndexEntry *)a)->path, (( const IndexEntry *)b)->path);
+}
 
 // Remove a file from the index.
 // Returns 0 on success, -1 if path not in index.
@@ -284,5 +287,5 @@ int index_add(Index *index, const char *path) {
     e->mtime_sec = (uint64_t)st.st_mtime;
     e->size      = (uint32_t)st.st_size;
 
-    return 0;
+    return index_save(index);
 }
