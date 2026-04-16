@@ -206,7 +206,7 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
     free(commit_data);
     if (rc != 0) return -1;
 
-    // 7. Update HEAD
+    // 7. Update head
     if (head_update(&commit_id) != 0) return -1;
 
     // 8. Return the new commit's ID
