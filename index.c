@@ -114,8 +114,10 @@ int index_load(Index *index) {
 // Save the index to .pes/index using atomic write (temp file + rename).
 int index_save(const Index *index) {
     // Sort entries by path before writing
-    Index sorted = *index;
-    qsort(sorted.entries, (size_t)sorted.count, sizeof(IndexEntry), cmp_index_entry);
+    Index *sorted = malloc(sizeof(Index));
+    if(!sorted)return -1;
+    *sorted = *index;
+    qsort(sorted->entries, (size_t)sorted->count, sizeof(IndexEntry), cmp_index_entry);
 
     char tmp_path[256];
     snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", INDEX_FILE);
@@ -126,8 +128,8 @@ int index_save(const Index *index) {
     FILE *f = fdopen(fd, "w");
     if (!f) { close(fd); return -1; }
 
-    for (int i = 0; i < sorted.count; i++) {
-        const IndexEntry *e = &sorted.entries[i];
+    for (int i = 0; i < sorted->count; i++) {
+        const IndexEntry *e = &sorted->entries[i];
         char hash_hex[HASH_HEX_SIZE + 1];
         hash_to_hex(&e->hash, hash_hex);
         fprintf(f, "%o %s %llu %u %s\n",
@@ -141,7 +143,7 @@ int index_save(const Index *index) {
     fflush(f);
     fsync(fileno(f));
     fclose(f);
-
+    free(sorted);
     return rename(tmp_path, INDEX_FILE);
 }
 
