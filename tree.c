@@ -130,8 +130,35 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
 //
 // Returns 0 on success, -1 on error.
 int tree_from_index(ObjectID *id_out) {
-    // TODO: Implement recursive tree building
-    // (See Lab Appendix for logical steps)
-    (void)id_out;
-    return -1;
+    Index index;
+    if (index_load(&index) != 0) return -1;
+
+    if (index.count == 0) {
+        // Empty tree — still need to write a valid (empty) tree object
+        Tree empty;
+        empty.count = 0;
+        void *data;
+        size_t len;
+        if (tree_serialize(&empty, &data, &len) != 0) return -1;
+        int rc = object_write(OBJ_TREE, data, len, id_out);
+        free(data);
+        return rc;
+    }
+
+    // The index entries must be sorted by path for the grouping logic to work.
+    // index_save() sorts them, but let's sort a local copy to be safe.
+    // (A simple insertion sort is fine for up to MAX_INDEX_ENTRIES.)
+    IndexEntry *sorted = malloc((size_t)index.count * sizeof(IndexEntry));
+    if (!sorted) return -1;
+    memcpy(sorted, index.entries, (size_t)index.count * sizeof(IndexEntry));
+
+    // qsort by path
+    int cmp_path(const void *a, const void *b) {
+        return strcmp(((const IndexEntry *)a)->path, ((const IndexEntry *)b)->path);
+    }
+    qsort(sorted, (size_t)index.count, sizeof(IndexEntry), cmp_path);
+
+    int rc = write_tree_level(sorted, index.count, "", id_out);
+    free(sorted);
+    return rc;
 }
